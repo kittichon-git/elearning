@@ -1,0 +1,204 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --reader-bg: #fafaf7;
+  --reader-text: #1a1a1a;
+  --reader-secondary: #6b7280;
+  --reader-accent: #c8a96e;
+  --reader-border: #e5e7eb;
+  --reader-surface: #ffffff;
+}
+
+.dark {
+  --reader-bg: #1c1c1e;
+  --reader-text: #e8e4dc;
+  --reader-secondary: #9ca3af;
+  --reader-accent: #c8a96e;
+  --reader-border: #2d2d2f;
+  --reader-surface: #2c2c2e;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  background-color: var(--reader-bg);
+  color: var(--reader-text);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── Reading Progress Bar ─────────────────────────── */
+.reading-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #c8a96e, #e8c98e);
+  transition: width 0.15s ease;
+  z-index: 100;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── Reader Content ───────────────────────────────── */
+.reader-content {
+  font-family: 'Sarabun', sans-serif;
+  line-height: 1.9;
+  color: var(--reader-text);
+}
+
+.reader-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  line-height: 1.4;
+}
+
+.reader-content h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 1.75rem 0 0.75rem;
+  line-height: 1.4;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--reader-border);
+}
+
+.reader-content h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-style: italic;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.reader-content p {
+  margin: 0 0 1.25rem;
+  text-align: justify;
+}
+
+.reader-content blockquote {
+  border-left: 4px solid var(--reader-accent);
+  background: rgba(200, 169, 110, 0.08);
+  margin: 1.75rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+}
+
+.reader-content blockquote p {
+  margin: 0;
+}
+
+.reader-content ul {
+  margin: 0 0 1.25rem 0;
+  padding-left: 1.4rem;
+  list-style: none;
+}
+
+.reader-content ul li {
+  position: relative;
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+.reader-content ul li::before {
+  content: '•';
+  color: var(--reader-accent);
+  font-weight: bold;
+  position: absolute;
+  left: -1.1rem;
+}
+
+.reader-content ol {
+  margin: 0 0 1.25rem 0;
+  padding-left: 1.5rem;
+}
+
+.reader-content ol li {
+  margin-bottom: 0.5rem;
+}
+
+.reader-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.75rem 0;
+  font-size: 0.9em;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.reader-content th {
+  background: #2c3e50;
+  color: white;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.88em;
+}
+
+.reader-content td {
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--reader-border);
+  vertical-align: top;
+}
+
+.reader-content tr:last-child td {
+  border-bottom: none;
+}
+
+.reader-content tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.dark .reader-content tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.reader-content code {
+  font-family: 'Courier New', Courier, monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.87em;
+}
+
+.dark .reader-content code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.reader-content pre {
+  background: #f4f4f0;
+  border: 1px solid var(--reader-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+}
+
+.dark .reader-content pre {
+  background: #252528;
+}
+
+.reader-content pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.reader-content hr {
+  border: none;
+  border-top: 1px solid var(--reader-border);
+  margin: 2.5rem 0;
+}
+
+.reader-content strong {
+  font-weight: 700;
+}
+
+.reader-content em {
+  font-style: italic;
+}
