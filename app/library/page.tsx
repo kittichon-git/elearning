@@ -46,7 +46,7 @@ export default function LibraryPage() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Library className="w-5 h-5 text-amber-600" />
-            <span className="font-bold text-sm">หอสมุดดิจิทัล</span>
+            <span className="font-bold text-sm">พชร หอสมุดดิจิทัล</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs" style={{ color: 'var(--reader-secondary)' }}>
