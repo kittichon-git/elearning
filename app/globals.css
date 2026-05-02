@@ -76,8 +76,20 @@ body {
 }
 
 .reader-content p {
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.6rem;
   text-align: justify;
+}
+
+/* ย่อหน้าใหม่ — indent บรรทัดแรก (ยกเว้นหลัง heading / blockquote) */
+.reader-content p + p {
+  text-indent: 2em;
+}
+
+/* บรรทัด → แยกชัดเจน */
+.reader-content br {
+  display: block;
+  margin-bottom: 0.35rem;
+  content: '';
 }
 
 .reader-content blockquote {

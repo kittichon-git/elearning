@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { Chapter } from '@/lib/types'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import {
   ArrowLeft, Settings, Sun, Moon,
   ChevronLeft, ChevronRight, List, X,
@@ -297,7 +298,7 @@ export default function ReaderPage() {
 
             {/* Markdown */}
             <div className="reader-content" style={{ fontSize: `${fontSize}px` }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                 {chapter.content_md}
               </ReactMarkdown>
             </div>
