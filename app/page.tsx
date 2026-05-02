@@ -49,7 +49,7 @@ export default function HomePage() {
           <Library className="w-10 h-10 text-amber-400" />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-          หอสมุดดิจิทัล
+          พชร หอสมุดดิจิทัล
         </h1>
         <p className="text-slate-400 text-sm">
           อ่านหนังสือคุณภาพ · ฟรี · ทุกที่ทุกเวลา
