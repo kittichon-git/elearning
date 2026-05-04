@@ -215,6 +215,57 @@ body {
   font-style: italic;
 }
 
+/* ── Callout Blocks ───────────────────────────────── */
+.reader-content aside.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 1.25rem 0;
+  padding: 0.9rem 1.1rem;
+  border-radius: 8px;
+  font-style: normal;
+  border-left: none;
+  background: rgba(200, 169, 110, 0.1);
+}
+
+.reader-content aside.callout .callout-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.reader-content aside.callout .callout-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reader-content aside.callout .callout-body > *:first-child {
+  margin-top: 0;
+}
+
+.reader-content aside.callout .callout-body > *:last-child {
+  margin-bottom: 0;
+}
+
+.reader-content aside.callout-green   { background: rgba(52, 168, 83, 0.12); }
+.reader-content aside.callout-blue    { background: rgba(66, 133, 244, 0.12); }
+.reader-content aside.callout-yellow  { background: rgba(251, 188, 4, 0.15); }
+.reader-content aside.callout-orange  { background: rgba(255, 109, 0, 0.12); }
+.reader-content aside.callout-red     { background: rgba(234, 67, 53, 0.12); }
+.reader-content aside.callout-purple  { background: rgba(156, 39, 176, 0.12); }
+.reader-content aside.callout-pink    { background: rgba(233, 30, 99, 0.12); }
+.reader-content aside.callout-gray    { background: rgba(120, 120, 120, 0.1); }
+.reader-content aside.callout-brown   { background: rgba(121, 85, 72, 0.12); }
+.reader-content aside.callout-default { background: rgba(200, 169, 110, 0.1); }
+
+.dark .reader-content aside.callout-green   { background: rgba(52, 168, 83, 0.18); }
+.dark .reader-content aside.callout-blue    { background: rgba(66, 133, 244, 0.18); }
+.dark .reader-content aside.callout-yellow  { background: rgba(251, 188, 4, 0.18); }
+.dark .reader-content aside.callout-orange  { background: rgba(255, 109, 0, 0.18); }
+.dark .reader-content aside.callout-red     { background: rgba(234, 67, 53, 0.18); }
+.dark .reader-content aside.callout-purple  { background: rgba(156, 39, 176, 0.18); }
+.dark .reader-content aside.callout-default { background: rgba(200, 169, 110, 0.15); }
+
 /* ── Toggle / Details ─────────────────────────────── */
 .reader-content details {
   border: 1px solid var(--reader-border);

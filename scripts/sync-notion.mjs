@@ -39,6 +39,32 @@ const DRY_RUN = process.argv.includes('--dry-run')
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
 const n2m = new NotionToMarkdown({ notionClient: notion })
 
+// ── Custom transformer: callout → <aside class="callout-COLOR"> ──
+n2m.setCustomTransformer('callout', async (block) => {
+  const { callout } = block
+  const color = (callout.color || 'default').replace('_background', '')
+  const emoji = callout.icon?.type === 'emoji' ? callout.icon.emoji : ''
+  const headerText = callout.rich_text?.map(t => {
+    let s = t.plain_text
+    if (t.annotations?.bold) s = `**${s}**`
+    if (t.annotations?.italic) s = `*${s}*`
+    return s
+  }).join('') || ''
+
+  // ดึง children blocks (bullet points ฯลฯ ข้างใน callout)
+  let childrenMd = ''
+  if (block.has_children) {
+    const childBlocks = await n2m.pageToMarkdown(block.id)
+    childrenMd = n2m.toMarkdownString(childBlocks)?.parent || ''
+  }
+
+  const iconHtml = emoji ? `<span class="callout-icon">${emoji}</span>` : ''
+  const headerHtml = headerText ? `<strong>${headerText}</strong>` : ''
+  const bodyHtml = [headerHtml, childrenMd].filter(Boolean).join('\n\n')
+
+  return `<aside class="callout callout-${color}">${iconHtml}<div class="callout-body">${bodyHtml}</div></aside>`
+})
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
