@@ -91,24 +91,25 @@ export default function ReaderPage() {
   useEffect(() => {
     const el = contentRef.current
     if (!el) return
-    let startY = 0
-    let didScroll = false
-    const onTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0].clientY
-      didScroll = false
-    }
-    const onTouchMove = (e: TouchEvent) => {
-      if (Math.abs(e.touches[0].clientY - startY) > 8) didScroll = true
-    }
-    const onSummaryClick = (e: MouseEvent) => {
-      if (didScroll) e.preventDefault()
-    }
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchmove', onTouchMove, { passive: true })
-    el.querySelectorAll('summary').forEach(s => s.addEventListener('click', onSummaryClick))
+    type Cleanup = { s: Element; fn: EventListener }
+    const cleanups: Cleanup[] = []
+
+    el.querySelectorAll('summary').forEach(s => {
+      let startY = 0
+      const onTouchStart = (e: Event) => {
+        startY = (e as TouchEvent).touches[0].clientY
+      }
+      const onTouchEnd = (e: Event) => {
+        const delta = Math.abs((e as TouchEvent).changedTouches[0].clientY - startY)
+        if (delta > 8) e.preventDefault()
+      }
+      s.addEventListener('touchstart', onTouchStart, { passive: true })
+      s.addEventListener('touchend', onTouchEnd)
+      cleanups.push({ s, fn: onTouchEnd })
+    })
+
     return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
+      cleanups.forEach(({ s, fn }) => s.removeEventListener('touchend', fn))
     }
   }, [chapter])
 
