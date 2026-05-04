@@ -28,7 +28,7 @@ export default function BookPage() {
     if (!user || !bookId) return
     Promise.all([
       supabase.from('elearning_books').select('*').eq('id', bookId).single(),
-      supabase.from('elearning_chapters').select('id,book_id,chapter_order,title,created_at').eq('book_id', bookId).order('chapter_order'),
+      supabase.from('elearning_chapters').select('id,book_id,chapter_order,title,content_md,content_html,created_at').eq('book_id', bookId).order('chapter_order'),
       supabase
         .from('elearning_user_progress')
         .select('*')
