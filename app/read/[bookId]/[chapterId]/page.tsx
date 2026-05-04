@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useCallback, memo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -321,11 +321,11 @@ export default function ReaderPage() {
             </div>
 
             {/* Content */}
-            <div
-              ref={contentRef}
-              className="reader-content"
-              style={{ fontSize: `${fontSize}px` }}
-              dangerouslySetInnerHTML={{ __html: chapter.content_html || chapter.content_md }}
+            <ChapterContent
+              html={chapter.content_html}
+              md={chapter.content_md}
+              fontSize={fontSize}
+              contentRef={contentRef}
             />
 
             {/* End of chapter indicator */}
@@ -402,3 +402,22 @@ export default function ReaderPage() {
     </div>
   )
 }
+
+// Memoized so it does NOT re-render when scrollProgress changes
+const ChapterContent = memo(function ChapterContent({
+  html, md, fontSize, contentRef,
+}: {
+  html: string | null
+  md: string
+  fontSize: number
+  contentRef: React.RefObject<HTMLDivElement>
+}) {
+  return (
+    <div
+      ref={contentRef}
+      className="reader-content"
+      style={{ fontSize: `${fontSize}px` }}
+      dangerouslySetInnerHTML={{ __html: html || md }}
+    />
+  )
+})
