@@ -214,3 +214,37 @@ body {
 .reader-content em {
   font-style: italic;
 }
+
+/* ── Toggle / Details ─────────────────────────────── */
+.reader-content details {
+  border: 1px solid var(--reader-border);
+  border-radius: 8px;
+  margin: 1rem 0;
+  overflow: hidden;
+}
+
+.reader-content summary {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--reader-surface);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reader-content summary::before {
+  content: '▶';
+  font-size: 0.65rem;
+  color: var(--reader-accent);
+  transition: transform 0.2s;
+}
+
+.reader-content details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.reader-content details > *:not(summary) {
+  padding: 0.75rem 1rem;
+}

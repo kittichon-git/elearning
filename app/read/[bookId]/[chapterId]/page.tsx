@@ -7,6 +7,7 @@ import { Chapter } from '@/lib/types'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeRaw from 'rehype-raw'
 import {
   ArrowLeft, Settings, Sun, Moon,
   ChevronLeft, ChevronRight, List, X,
@@ -298,7 +299,7 @@ export default function ReaderPage() {
 
             {/* Markdown */}
             <div className="reader-content" style={{ fontSize: `${fontSize}px` }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                 {chapter.content_md}
               </ReactMarkdown>
             </div>
