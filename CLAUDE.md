@@ -5,7 +5,7 @@
 **Live:** https://elearning-xxx.vercel.app (Vercel)
 **Vision:** แพลตฟอร์มอ่านหนังสือออนไลน์ Mobile-First ผ่าน LINE LIFF
 
-**อัปเดตล่าสุด:** พฤษภาคม 2026
+**อัปเดตล่าสุด:** 5 พฤษภาคม 2026
 
 ---
 
@@ -19,7 +19,9 @@
 | Auth | Mock login (localStorage) → เปลี่ยนเป็น LINE LIFF Phase 2 |
 | Database | Supabase (PostgreSQL, Free tier) |
 | Content Source | Notion API (notion-to-md) |
-| Markdown Render | react-markdown + remark-gfm + remark-breaks |
+| Markdown Render | react-markdown + remark-gfm + remark-breaks + rehype-raw |
+| HTML in Markdown | rehype-raw — render `<aside>`, `<details>` และ HTML tags จาก Notion |
+| MD→HTML Convert | marked — แปลง children markdown เป็น HTML ใน callout blocks |
 | Deploy | Vercel (auto-deploy จาก GitHub main branch) |
 
 ---
@@ -178,6 +180,25 @@ script `sync-notion.mjs` อ่าน properties เหล่านี้:
 --reader-border: #2d2d2f
 --reader-surface: #2c2c2e
 ```
+
+---
+
+## Notion Block Support
+
+| Block Type | การแสดงผล |
+|------------|----------|
+| Callout | `<aside class="callout callout-{color}">` — มีสีตาม Notion (green/blue/yellow/red ฯลฯ) |
+| Toggle | `<details><summary>` — กดเปิด/ปิดได้ |
+| Blockquote | `>` — กรอบสีทอง left border |
+| Code block | `<pre><code>` — scroll horizontal ได้ |
+| Table | render ครบ header/row |
+
+### Callout Color Mapping
+สีใน Notion → CSS class `callout-{color}` → background สีจางตามโทน
+
+### Custom Transformer (sync-notion.mjs)
+- callout block → ดึง `color` + `icon.emoji` + children → แปลง children เป็น HTML ด้วย `marked` → embed ใน `<aside>`
+- ต้องรัน `node scripts/sync-notion.mjs` ทุกครั้งที่แก้เนื้อหาใน Notion
 
 ---
 

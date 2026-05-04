@@ -14,6 +14,7 @@ import { Client } from '@notionhq/client'
 import { NotionToMarkdown } from 'notion-to-md'
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'fs'
+import { marked } from 'marked'
 
 // ── โหลด .env.local ─────────────────────────────────────
 function loadEnv() {
@@ -36,8 +37,41 @@ loadEnv()
 const DRY_RUN = process.argv.includes('--dry-run')
 
 // ── Clients ──────────────────────────────────────────────
-const notion = new Client({ auth: process.env.NOTION_TOKEN })
+const notion = new Client({
+  auth: process.env.NOTION_TOKEN,
+  timeoutMs: 60000,
+})
 const n2m = new NotionToMarkdown({ notionClient: notion })
+
+// ── Helper: แปลง toggle children เป็น HTML ───────────────────────
+async function toggleChildrenToHtml(blockId) {
+  const childBlocks = await withRetry(() => n2m.pageToMarkdown(blockId))
+  const childrenMd = n2m.toMarkdownString(childBlocks)?.parent || ''
+  const cleaned = childrenMd.split('\n').map(l => l.replace(/^    /, '')).join('\n')
+  return marked.parse(cleaned)
+}
+
+// ── Custom transformer: toggle block ─────────────────────────────
+n2m.setCustomTransformer('toggle', async (block) => {
+  const { toggle } = block
+  const title = toggle.rich_text?.map(t => t.plain_text).join('') || 'ดูเพิ่มเติม'
+  const childrenHtml = block.has_children ? await toggleChildrenToHtml(block.id) : ''
+  return `\n\n<details>\n<summary>${title}</summary>\n<div class="toggle-body">\n${childrenHtml}\n</div>\n</details>\n\n`
+})
+
+// ── Custom transformer: toggleable headings (h1/h2/h3) ───────────
+async function toggleableHeading(block, type) {
+  const data = block[type]
+  if (!data?.is_toggleable) return false // ใช้ default renderer ถ้าไม่ใช่ toggle
+  const level = type.replace('heading_', '')
+  const title = data.rich_text?.map(t => t.plain_text).join('') || ''
+  const childrenHtml = block.has_children ? await toggleChildrenToHtml(block.id) : ''
+  return `\n\n<details>\n<summary><h${level} style="display:inline">${title}</h${level}></summary>\n<div class="toggle-body">\n${childrenHtml}\n</div>\n</details>\n\n`
+}
+
+n2m.setCustomTransformer('heading_1', async (block) => toggleableHeading(block, 'heading_1'))
+n2m.setCustomTransformer('heading_2', async (block) => toggleableHeading(block, 'heading_2'))
+n2m.setCustomTransformer('heading_3', async (block) => toggleableHeading(block, 'heading_3'))
 
 // ── Custom transformer: callout → <aside class="callout-COLOR"> ──
 n2m.setCustomTransformer('callout', async (block) => {
@@ -54,15 +88,16 @@ n2m.setCustomTransformer('callout', async (block) => {
   // ดึง children blocks (bullet points ฯลฯ ข้างใน callout)
   let childrenMd = ''
   if (block.has_children) {
-    const childBlocks = await n2m.pageToMarkdown(block.id)
+    const childBlocks = await withRetry(() => n2m.pageToMarkdown(block.id))
     childrenMd = n2m.toMarkdownString(childBlocks)?.parent || ''
   }
 
   const iconHtml = emoji ? `<span class="callout-icon">${emoji}</span>` : ''
   const headerHtml = headerText ? `<strong>${headerText}</strong>` : ''
-  const bodyHtml = [headerHtml, childrenMd].filter(Boolean).join('\n\n')
+  const childrenHtml = childrenMd ? marked.parse(childrenMd) : ''
+  const body = [headerHtml, childrenHtml].filter(Boolean).join('\n')
 
-  return `<aside class="callout callout-${color}">${iconHtml}<div class="callout-body">${bodyHtml}</div></aside>`
+  return `\n\n<aside class="callout callout-${color}">\n${iconHtml}\n<div class="callout-body">\n${body}\n</div>\n</aside>\n\n`
 })
 
 const supabase = createClient(
@@ -81,10 +116,33 @@ function getProp(page, name, type) {
   return null
 }
 
+// ── Retry wrapper ────────────────────────────────────────
+async function withRetry(fn, retries = 3, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      if (i < retries - 1 && (e.code === 'notionhq_client_request_timeout' || e.status === 429)) {
+        const wait = delay * (i + 1)
+        process.stdout.write(` [retry ${i + 1} in ${wait/1000}s]`)
+        await new Promise(r => setTimeout(r, wait))
+      } else throw e
+    }
+  }
+}
+
 // ── แปลง page เป็น Markdown ─────────────────────────────
 async function pageToMarkdown(pageId) {
   const blocks = await n2m.pageToMarkdown(pageId)
-  return n2m.toMarkdownString(blocks)?.parent ?? ''
+  const md = n2m.toMarkdownString(blocks)?.parent ?? ''
+  return md
+    .split('\n')
+    .map(line => line.replace(/^    /, ''))  // ลบ 4-space indentation
+    .join('\n')
+    .replace(/(<\/(?:aside|details)>)([ \t]+)(#{1,6}\s)/g, '$1\n\n$3')  // heading หลัง closing tag
+    .replace(/(<\/(?:aside|details)>)([ \t]+)(\S)/g, '$1\n\n$3')        // content อื่นหลัง closing tag
+    .replace(/^• /gm, '- ')   // แปลง bullet • เป็น markdown -
+    .replace(/\n• /g, '\n- ') // bullet ในบรรทัดถัดไป
 }
 
 // ── Upsert book ──────────────────────────────────────────
@@ -201,7 +259,8 @@ async function main() {
     for (const ch of sortedChapters) {
       process.stdout.write(`   ⏳ บทที่ ${String(ch.chapterOrder).padStart(2, '0')}: ${ch.chapterTitle} ... `)
       try {
-        const content_md = await pageToMarkdown(ch.page.id)
+        const content_md = await withRetry(() => pageToMarkdown(ch.page.id))
+        const content_html = marked.parse(content_md)
 
         const { error } = await supabase
           .from('elearning_chapters')
@@ -211,6 +270,7 @@ async function main() {
               chapter_order: ch.chapterOrder,
               title: ch.chapterTitle,
               content_md,
+              content_html,
             },
             { onConflict: 'book_id,chapter_order' }
           )

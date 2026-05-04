@@ -15,6 +15,7 @@ export interface Chapter {
   chapter_order: number
   title: string
   content_md: string
+  content_html: string | null
   created_at: string
 }
 
