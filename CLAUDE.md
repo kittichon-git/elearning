@@ -19,10 +19,11 @@
 | Auth | Mock login (localStorage) → เปลี่ยนเป็น LINE LIFF Phase 2 |
 | Database | Supabase (PostgreSQL, Free tier) |
 | Content Source | Notion API (notion-to-md) |
-| Markdown Render | react-markdown + remark-gfm + remark-breaks + rehype-raw |
-| HTML in Markdown | rehype-raw — render `<aside>`, `<details>` และ HTML tags จาก Notion |
-| MD→HTML Convert | marked — แปลง children markdown เป็น HTML ใน callout blocks |
+| HTML Render | dangerouslySetInnerHTML — render pre-built HTML จาก DB โดยตรง |
+| MD→HTML Convert | marked — แปลง markdown + HTML จาก Notion เป็น HTML ตอน sync |
 | Deploy | Vercel (auto-deploy จาก GitHub main branch) |
+
+> **หมายเหตุ:** ลบ react-markdown / remark / rehype ออกแล้ว — reader ใช้ `dangerouslySetInnerHTML` กับ `content_html` ที่ pre-render ไว้ใน DB แทน เร็วกว่าและรองรับ HTML tags ได้ดีกว่า
 
 ---
 
@@ -32,9 +33,10 @@
 ```
 Notion Database
   → scripts/sync-notion.mjs (Notion API + notion-to-md)
-  → Supabase (elearning_chapters.content_md)
+  → แปลงเป็น HTML ด้วย marked.parse()
+  → Supabase (elearning_chapters.content_md + content_html)
   → Next.js Reader Page
-  → ReactMarkdown render
+  → dangerouslySetInnerHTML render
   → ผู้อ่าน
 ```
 
@@ -67,10 +69,10 @@ D:/elearning web/
 │   ├── layout.tsx                ← Root layout + AuthProvider
 │   ├── page.tsx                  ← Login page
 │   ├── library/
-│   │   └── page.tsx              ← รายการหนังสือทั้งหมด
+│   │   └── page.tsx              ← รายการหนังสือ (grid 2 คอลัมน์ + ปกหนังสือ)
 │   ├── book/
 │   │   └── [id]/
-│   │       └── page.tsx          ← Book detail + สารบัญ + progress
+│   │       └── page.tsx          ← Book detail: ปก + คำอธิบาย + CTA + สารบัญ
 │   └── read/
 │       └── [bookId]/
 │           └── [chapterId]/
@@ -100,10 +102,20 @@ D:/elearning web/
 elearning_profiles (id UUID, mock_user_id TEXT UNIQUE, display_name TEXT)
 
 -- หนังสือ
-elearning_books (id SERIAL, title TEXT, author TEXT, description TEXT, is_active BOOL)
+elearning_books (
+  id SERIAL, title TEXT, author TEXT, translator TEXT,
+  description TEXT,   -- คำอธิบายยาว (sales pitch) แสดงใน Book Detail
+  cover_url TEXT,     -- URL รูปปกหนังสือ (Supabase Storage หรือ URL ภายนอก)
+  buy_url TEXT,       -- URL ลิงก์ซื้อหนังสือ (optional)
+  is_active BOOL
+)
 
--- บท (เนื้อหาเป็น Markdown)
-elearning_chapters (id SERIAL, book_id INT, chapter_order INT, title TEXT, content_md TEXT)
+-- บท (เนื้อหาเก็บทั้ง Markdown และ HTML)
+elearning_chapters (
+  id SERIAL, book_id INT, chapter_order INT, title TEXT,
+  content_md TEXT,    -- Markdown ต้นฉบับ (สำรอง)
+  content_html TEXT   -- HTML pre-rendered (ใช้งานจริง — เร็วกว่า)
+)
 -- UNIQUE (book_id, chapter_order)
 
 -- ความคืบหน้า
@@ -121,11 +133,14 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxxx
 
 # Notion (สำหรับ sync script เท่านั้น — ไม่ได้ใช้ใน frontend)
-NOTION_TOKEN=secret_xxxx
-NOTION_DATABASE_ID=xxxx
-NOTION_BOOK_TITLE=ชื่อหนังสือ
+NOTION_TOKEN=secret_xxxx        ← ใช้ได้กับทุก DB ใน workspace เดียวกัน
+NOTION_DATABASE_ID=xxxx         ← เปลี่ยนทุกครั้งที่ sync หนังสือเล่มใหม่
+NOTION_BOOK_TITLE=ชื่อหนังสือ   ← ต้องตรงกับชื่อที่ต้องการใน Supabase
 NOTION_BOOK_AUTHOR=ชื่อผู้เขียน (optional)
 ```
+
+**เพิ่มหนังสือเล่มใหม่:** เปลี่ยน `NOTION_DATABASE_ID` + `NOTION_BOOK_TITLE` + `NOTION_BOOK_AUTHOR` แล้วรัน sync ใหม่
+**NOTION_TOKEN ไม่ต้องเปลี่ยน** แต่ต้อง share integration ให้ database ใหม่ใน Notion ด้วย
 
 ---
 
@@ -147,9 +162,26 @@ script `sync-notion.mjs` อ่าน properties เหล่านี้:
 | Route | หน้า | Auth |
 |-------|------|------|
 | `/` | Login | ไม่ต้อง |
-| `/library` | รายการหนังสือ | ✓ |
-| `/book/[id]` | Book detail + สารบัญ | ✓ |
+| `/library` | รายการหนังสือ (grid 2 คอลัมน์ + ปก) | ✓ |
+| `/book/[id]` | Book detail: ปก + คำอธิบาย + CTA + สารบัญ | ✓ |
 | `/read/[bookId]/[chapterId]` | Reader | ✓ |
+
+---
+
+## Library & Book Detail Features
+
+### Library Page
+- Grid 2 คอลัมน์ — ปกหนังสือ (aspect 3:4) + ชื่อ + ผู้แต่ง + คำอธิบายย่อ
+- Placeholder ปกสีทองถ้าไม่มี `cover_url`
+
+### Book Detail Page
+- Hero: ปกหนังสือ (ซ้าย) + ชื่อ/ผู้แต่ง/progress (ขวา)
+- คำอธิบายยาว (sales pitch) จาก `description`
+- 3 ปุ่ม CTA:
+  - **เริ่มอ่านเลย** / **อ่านต่อจากที่ค้างไว้** — ไปหน้า reader
+  - **ดูสารบัญ** — scroll ลงไปส่วน TOC ด้านล่าง
+  - **ซื้อหนังสือ** — แสดงเฉพาะเมื่อมี `buy_url`
+- สารบัญพร้อม check mark บทที่อ่านแล้ว
 
 ---
 
@@ -161,6 +193,8 @@ script `sync-notion.mjs` อ่าน properties เหล่านี้:
 - **TOC panel** — สารบัญ dropdown, highlight บทปัจจุบัน
 - **Bottom nav** — prev/next chapter, แสดงเลข x/N
 - **Auto-save** — บันทึก progress ทุก 5 วินาที หลัง scroll
+- **Toggle scroll fix** — ป้องกัน `<details>` ยุบตัวขณะ scroll บน mobile (touchend + memo)
+- **Memoized content** — `ChapterContent` ใช้ `React.memo` ป้องกัน re-render จาก scrollProgress
 
 ---
 
@@ -189,15 +223,15 @@ script `sync-notion.mjs` อ่าน properties เหล่านี้:
 |------------|----------|
 | Callout | `<aside class="callout callout-{color}">` — มีสีตาม Notion (green/blue/yellow/red ฯลฯ) |
 | Toggle | `<details><summary>` — กดเปิด/ปิดได้ |
+| Toggleable Heading | `<details><summary><h1/2/3>` — heading ที่ toggle ได้ |
 | Blockquote | `>` — กรอบสีทอง left border |
 | Code block | `<pre><code>` — scroll horizontal ได้ |
 | Table | render ครบ header/row |
 
-### Callout Color Mapping
-สีใน Notion → CSS class `callout-{color}` → background สีจางตามโทน
-
 ### Custom Transformer (sync-notion.mjs)
-- callout block → ดึง `color` + `icon.emoji` + children → แปลง children เป็น HTML ด้วย `marked` → embed ใน `<aside>`
+- callout → ดึง `color` + `icon.emoji` + children → HTML ใน `<aside class="callout callout-{color}">`
+- toggle / toggleable heading → `<details><summary>` พร้อม children เป็น HTML
+- ทั้งหมด pre-render เป็น HTML ตอน sync ด้วย `marked.parse()` → เก็บใน `content_html`
 - ต้องรัน `node scripts/sync-notion.mjs` ทุกครั้งที่แก้เนื้อหาใน Notion
 
 ---
