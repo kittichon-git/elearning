@@ -26,6 +26,7 @@ export default function ReaderPage() {
   const [showToc, setShowToc] = useState(false)
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Auth guard
   useEffect(() => {
@@ -85,6 +86,31 @@ export default function ReaderPage() {
     },
     [user, bookId, chapterId]
   )
+
+  // Prevent toggle collapse/expand while scrolling
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    let startY = 0
+    let didScroll = false
+    const onTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY
+      didScroll = false
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      if (Math.abs(e.touches[0].clientY - startY) > 8) didScroll = true
+    }
+    const onSummaryClick = (e: MouseEvent) => {
+      if (didScroll) e.preventDefault()
+    }
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    el.querySelectorAll('summary').forEach(s => s.addEventListener('click', onSummaryClick))
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+    }
+  }, [chapter])
 
   // Scroll tracking
   useEffect(() => {
@@ -295,6 +321,7 @@ export default function ReaderPage() {
 
             {/* Content */}
             <div
+              ref={contentRef}
               className="reader-content"
               style={{ fontSize: `${fontSize}px` }}
               dangerouslySetInnerHTML={{ __html: chapter.content_html || chapter.content_md }}
