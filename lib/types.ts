@@ -5,6 +5,7 @@ export interface Book {
   translator: string | null
   description: string | null
   cover_url: string | null
+  buy_url: string | null
   is_active: boolean
   created_at: string
 }
